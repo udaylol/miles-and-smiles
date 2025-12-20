@@ -63,10 +63,7 @@ class AuthController {
         return sendResponse(res, 400, false, "Invalid email or password.");
       }
 
-      const isMatch = await comparePassword(
-        password,
-        existingUser.password
-      );
+      const isMatch = await comparePassword(password, existingUser.password);
       if (!isMatch) {
         return sendResponse(res, 400, false, "Invalid email or password.");
       }

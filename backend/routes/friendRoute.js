@@ -10,7 +10,7 @@ router.get("/requests", auth, FriendController.getFriendRequests);
 router.post("/request/:id", auth, FriendController.sendFriendRequest);
 router.post("/request/:id/accept", auth, FriendController.acceptFriendRequest);
 
-router.delete("/:id", auth, FriendController.deleteFriend);
 router.delete("/request/:id", auth, FriendController.deleteFriendRequest);
+router.delete("/:id", auth, FriendController.deleteFriend);
 
 export default router;

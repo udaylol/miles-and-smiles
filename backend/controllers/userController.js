@@ -5,12 +5,17 @@ import UserService from "../services/userService.js";
 import { sendResponse } from "../utils/response.js";
 import { publicUserDTO } from "../dtos/userDto.js";
 
-
 class UserController {
   // ---------------- GET USER BY ID ----------------
   static async getUserById(req, res) {
     try {
-      const user = await UserService.getUserInfo(req.params.id);
+      const userId = req.params.id;
+
+      if (!mongoose.Types.ObjectId.isValid(userId)) {
+        return sendResponse(res, 400, false, "Invalid user id");
+      }
+
+      const user = await UserService.getUserInfo(userId);
 
       if (!user) {
         return sendResponse(res, 404, false, "User not found");
@@ -38,13 +43,7 @@ class UserController {
         return sendResponse(res, 404, false, "User not found");
       }
 
-      return sendResponse(
-        res,
-        200,
-        true,
-        "User fetched successfully",
-        user
-      );
+      return sendResponse(res, 200, true, "User fetched successfully", user);
     } catch (err) {
       console.error("getMe error:", err);
       return sendResponse(res, 500, false, "Server error");
@@ -60,21 +59,15 @@ class UserController {
         console.log("1");
         return sendResponse(res, 200, true, "No changes provided");
       }
-      
+
       const user = await User.findById(req.user.id);
       if (!user) {
         return sendResponse(res, 404, false, "User not found");
       }
-      
+
       if (isSameObject(user.toObject(), updates)) {
         console.log("3");
-        return sendResponse(
-          res,
-          200,
-          true,
-          "No changes provided",
-          user
-        );
+        return sendResponse(res, 200, true, "No changes provided", user);
       }
 
       const updatedUser = await User.findByIdAndUpdate(req.user.id, updates, {
@@ -110,13 +103,7 @@ class UserController {
       if (username) updates.username = username;
 
       if (Object.keys(updates).length === 0 || isSameObject(user, updates)) {
-        return sendResponse(
-          res,
-          200,
-          true,
-          "No changes provided",
-          user
-        );
+        return sendResponse(res, 200, true, "No changes provided", user);
       }
 
       if (email) {

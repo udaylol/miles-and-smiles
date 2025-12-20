@@ -1,6 +1,7 @@
 import User from "../models/User.js";
 import UserService from "../services/userService.js";
 import { sendResponse } from "../utils/response.js";
+import mongoose from "mongoose";
 
 class FriendController {
   // ---------------- GET FRIENDS ----------------
@@ -94,6 +95,10 @@ class FriendController {
       const receiverId = req.user.id;
       const senderId = req.params.id;
 
+      if (!mongoose.Types.ObjectId.isValid(senderId)) {
+        return sendResponse(res, 400, false, "Invalid user id");
+      }
+
       const receiver = await User.findById(receiverId);
       const sender = await User.findById(senderId);
 
@@ -131,6 +136,10 @@ class FriendController {
       const uid1 = req.user.id;
       const uid2 = req.params.id;
 
+      if (!mongoose.Types.ObjectId.isValid(uid2)) {
+        return sendResponse(res, 400, false, "Invalid user id");
+      }
+
       const user1 = await User.findById(uid1);
       const user2 = await User.findById(uid2);
 
@@ -166,6 +175,10 @@ class FriendController {
     try {
       const uid1 = req.user.id;
       const uid2 = req.params.id;
+
+      if (!user1 || !user2) {
+        return sendResponse(res, 404, false, "User not found");
+      }
 
       const user1 = await User.findById(uid1);
       const user2 = await User.findById(uid2);

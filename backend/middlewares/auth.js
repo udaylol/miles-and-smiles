@@ -10,7 +10,7 @@ export const auth = (req, res, next) => {
         : null);
 
     if (!token) {
-      return sendResponse(res, 401,false, "Not authenticated");
+      return sendResponse(res, 401, false, "Not authenticated");
     }
 
     const decoded = verifyToken(token);
