@@ -1,9 +1,5 @@
-import User from "../models/User.js";
-import cloudinary from "../configs/cloudinary.js";
-import { isSameObject } from "../utils/compare.js";
 import UserService from "../services/userService.js";
 import { sendResponse } from "../utils/response.js";
-import { publicUserDTO } from "../dtos/userDto.js";
 
 class UserController {
   // ---------------- GET USER BY ID ----------------
@@ -11,25 +7,26 @@ class UserController {
     try {
       const userId = req.params.id;
 
-      if (!mongoose.Types.ObjectId.isValid(userId)) {
-        return sendResponse(res, 400, false, "Invalid user id");
-      }
-
-      const user = await UserService.getUserInfo(userId);
-
-      if (!user) {
-        return sendResponse(res, 404, false, "User not found");
-      }
+      const user = await UserService.getPublicUserById(userId);
 
       return sendResponse(
         res,
         200,
         true,
         "User fetched successfully",
-        publicUserDTO(user)
+        user
       );
     } catch (err) {
       console.error("getUserById error:", err);
+
+      if (err.message === "Invalid user id") {
+        return sendResponse(res, 400, false, err.message);
+      }
+
+      if (err.message === "User not found") {
+        return sendResponse(res, 404, false, err.message);
+      }
+
       return sendResponse(res, 500, false, "Server error");
     }
   }
@@ -37,7 +34,13 @@ class UserController {
   // ---------------- GET ME ----------------
   static async getMe(req, res) {
     try {
-      const user = await UserService.getUserInfo(req.user.id);
+      const userId = req.user?.id || req.user?._id;
+      
+      if (!userId) {
+        return sendResponse(res, 401, false, "Unauthorized");
+      }
+
+      const user = await UserService.getUserInfo(userId);
 
       if (!user) {
         return sendResponse(res, 404, false, "User not found");
@@ -55,24 +58,13 @@ class UserController {
     try {
       const updates = req.body ?? {};
 
-      if (Object.keys(updates).length === 0) {
-        console.log("1");
-        return sendResponse(res, 200, true, "No changes provided");
-      }
+      const updatedUser = await UserService.updateUser(req.user.id, updates);
 
-      const user = await User.findById(req.user.id);
-      if (!user) {
-        return sendResponse(res, 404, false, "User not found");
-      }
-
-      if (isSameObject(user.toObject(), updates)) {
-        console.log("3");
+      if (!updatedUser) {
+        // No changes were made
+        const user = await UserService.getUserInfo(req.user.id);
         return sendResponse(res, 200, true, "No changes provided", user);
       }
-
-      const updatedUser = await User.findByIdAndUpdate(req.user.id, updates, {
-        new: true,
-      }).select("-password");
 
       return sendResponse(
         res,
@@ -83,6 +75,11 @@ class UserController {
       );
     } catch (err) {
       console.error("updateUser error:", err);
+
+      if (err.message === "User not found") {
+        return sendResponse(res, 404, false, err.message);
+      }
+
       return sendResponse(res, 500, false, "Error updating user");
     }
   }
@@ -93,42 +90,16 @@ class UserController {
       const userId = req.user.id;
       const { email, username } = req.body ?? {};
 
-      const user = await UserService.getUserInfo(userId);
-      if (!user) {
-        return sendResponse(res, 404, false, "User not found");
-      }
+      const updated = await UserService.updateCredentials(userId, {
+        email,
+        username,
+      });
 
-      const updates = {};
-      if (email) updates.email = email;
-      if (username) updates.username = username;
-
-      if (Object.keys(updates).length === 0 || isSameObject(user, updates)) {
+      if (!updated) {
+        // No changes were made
+        const user = await UserService.getUserInfo(userId);
         return sendResponse(res, 200, true, "No changes provided", user);
       }
-
-      if (email) {
-        const emailExists = await User.findOne({
-          email,
-          _id: { $ne: userId },
-        });
-        if (emailExists) {
-          return sendResponse(res, 400, false, "Email already in use");
-        }
-      }
-
-      if (username) {
-        const usernameExists = await User.findOne({
-          username,
-          _id: { $ne: userId },
-        });
-        if (usernameExists) {
-          return sendResponse(res, 400, false, "Username already in use");
-        }
-      }
-
-      const updated = await User.findByIdAndUpdate(userId, updates, {
-        new: true,
-      }).select("-password");
 
       return sendResponse(
         res,
@@ -139,6 +110,18 @@ class UserController {
       );
     } catch (err) {
       console.error("updateCredentials error:", err);
+
+      const errorMessages = {
+        "User not found": { status: 404, message: err.message },
+        "Email already in use": { status: 400, message: err.message },
+        "Username already in use": { status: 400, message: err.message },
+      };
+
+      const error = errorMessages[err.message];
+      if (error) {
+        return sendResponse(res, error.status, false, error.message);
+      }
+
       return sendResponse(res, 500, false, "Server error");
     }
   }
@@ -150,28 +133,25 @@ class UserController {
         return sendResponse(res, 400, false, "No file uploaded");
       }
 
-      const user = await User.findById(req.user.id);
-      if (!user) {
-        return sendResponse(res, 404, false, "User not found");
-      }
-
-      if (user.profilePicturePublicId) {
-        await cloudinary.uploader.destroy(user.profilePicturePublicId);
-      }
-
-      user.profilePicture = req.file.path;
-      user.profilePicturePublicId = req.file.filename;
-      await user.save();
+      const result = await UserService.updateProfilePicture(
+        req.user.id,
+        req.file
+      );
 
       return sendResponse(
         res,
         200,
         true,
         "Profile picture updated successfully",
-        { url: user.profilePicture }
+        result
       );
     } catch (err) {
       console.error("updateProfilePicture error:", err);
+
+      if (err.message === "User not found") {
+        return sendResponse(res, 404, false, err.message);
+      }
+
       return sendResponse(res, 500, false, "Failed to update profile picture");
     }
   }
@@ -179,22 +159,16 @@ class UserController {
   // ---------------- DELETE PROFILE PICTURE ----------------
   static async deleteProfilePicture(req, res) {
     try {
-      const user = await User.findById(req.user.id);
-      if (!user) {
-        return sendResponse(res, 404, false, "User not found");
-      }
-
-      if (user.profilePicturePublicId) {
-        await cloudinary.uploader.destroy(user.profilePicturePublicId);
-      }
-
-      user.profilePicture = "/guest.png";
-      user.profilePicturePublicId = null;
-      await user.save();
+      await UserService.deleteProfilePicture(req.user.id);
 
       return sendResponse(res, 200, true, "Profile picture removed");
     } catch (err) {
       console.error("deleteProfilePicture error:", err);
+
+      if (err.message === "User not found") {
+        return sendResponse(res, 404, false, err.message);
+      }
+
       return sendResponse(res, 500, false, "Failed to remove profile picture");
     }
   }

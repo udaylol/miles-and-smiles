@@ -42,6 +42,7 @@ const userSchema = new mongoose.Schema(
       },
     ],
 
+    favourites: [],
     incomingFriendRequests: [
       {
         type: mongoose.Schema.Types.ObjectId,

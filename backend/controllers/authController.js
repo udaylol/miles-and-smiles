@@ -1,8 +1,6 @@
-import User from "../models/User.js";
-import { hashPassword, comparePassword } from "../utils/hash.js";
+import AuthService from "../services/authService.js";
 import { generateToken } from "../utils/jwt.js";
 import { sendResponse } from "../utils/response.js";
-import { publicUserDTO } from "../dtos/userDto.js";
 
 const setAuthCookie = (res, token) => {
   res.cookie("token", token, {
@@ -23,28 +21,22 @@ class AuthController {
         return sendResponse(res, 400, false, "Email and password required.");
       }
 
-      const existingUser = await User.findOne({ email });
-      if (existingUser) {
-        return sendResponse(res, 400, false, "Email is already in use.");
-      }
+      const user = await AuthService.signup(email, password);
 
-      const hashedPassword = await hashPassword(password);
-
-      const user = new User({
-        email,
-        password: hashedPassword,
-      });
-      await user.save();
-
-      const token = generateToken(user._id);
+      const token = generateToken(user.id);
       setAuthCookie(res, token);
 
       return sendResponse(res, 201, true, "Signup successful.", {
-        user: publicUserDTO(user),
+        user,
         token,
       });
     } catch (err) {
       console.error("signup error:", err);
+      
+      if (err.message === "Email is already in use.") {
+        return sendResponse(res, 400, false, err.message);
+      }
+      
       return sendResponse(res, 500, false, "Sign up failed.");
     }
   }
@@ -58,25 +50,22 @@ class AuthController {
         return sendResponse(res, 400, false, "Email and password required.");
       }
 
-      const existingUser = await User.findOne({ email });
-      if (!existingUser) {
-        return sendResponse(res, 400, false, "Invalid email or password.");
-      }
+      const user = await AuthService.signin(email, password);
 
-      const isMatch = await comparePassword(password, existingUser.password);
-      if (!isMatch) {
-        return sendResponse(res, 400, false, "Invalid email or password.");
-      }
-
-      const token = generateToken(existingUser._id);
+      const token = generateToken(user.id);
       setAuthCookie(res, token);
 
       return sendResponse(res, 200, true, "Signin successful.", {
-        user: publicUserDTO(existingUser),
+        user,
         token,
       });
     } catch (err) {
       console.error("signin error:", err);
+      
+      if (err.message === "Invalid email or password.") {
+        return sendResponse(res, 400, false, err.message);
+      }
+      
       return sendResponse(res, 500, false, "Server error");
     }
   }
