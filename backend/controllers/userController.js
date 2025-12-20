@@ -1,192 +1,214 @@
 import User from "../models/User.js";
+import cloudinary from "../configs/cloudinary.js";
 import { isSameObject } from "../utils/compare.js";
-import { getUser } from "../services/userService.js";
+import UserService from "../services/userService.js";
+import { sendResponse } from "../utils/response.js";
+import { publicUserDTO } from "../dtos/userDto.js";
 
-const formatUser = (user) => ({
-  _id: user._id,
-  email: user.email,
-});
 
 class UserController {
-  // --------------------- GET USER BY ID ---------------------
+  // ---------------- GET USER BY ID ----------------
   static async getUserById(req, res) {
     try {
-      const user = await getUser(req.params.id);
+      const user = await UserService.getUserInfo(req.params.id);
 
       if (!user) {
-        return res.status(404).json({
-          success: false,
-          message: "User not found",
-          data: null,
-        });
+        return sendResponse(res, 404, false, "User not found");
       }
 
-      return res.status(200).json({
-        success: true,
-        message: "User fetched successfully",
-        data: formatUser(user),
-      });
+      return sendResponse(
+        res,
+        200,
+        true,
+        "User fetched successfully",
+        publicUserDTO(user)
+      );
     } catch (err) {
-      console.error(err);
-      return res.status(500).json({
-        success: false,
-        message: "Server error",
-        data: null,
-      });
+      console.error("getUserById error:", err);
+      return sendResponse(res, 500, false, "Server error");
     }
   }
 
-  // --------------------- GET ME ---------------------
+  // ---------------- GET ME ----------------
   static async getMe(req, res) {
     try {
-      const user = await getUser(req.userId);
+      const user = await UserService.getUserInfo(req.user.id);
 
       if (!user) {
-        return res.status(404).json({
-          success: false,
-          message: "User not found",
-          data: null,
-        });
+        return sendResponse(res, 404, false, "User not found");
       }
 
-      return res.status(200).json({
-        success: true,
-        message: "User fetched successfully",
-        data: formatUser(user),
-      });
+      return sendResponse(
+        res,
+        200,
+        true,
+        "User fetched successfully",
+        user
+      );
     } catch (err) {
-      console.error(err);
-      return res.status(500).json({
-        success: false,
-        message: "Server error",
-        data: null,
-      });
+      console.error("getMe error:", err);
+      return sendResponse(res, 500, false, "Server error");
     }
   }
 
-  // --------------------- UPDATE USER ---------------------
+  // ---------------- UPDATE USER (non-credentials) ----------------
   static async updateUser(req, res) {
     try {
       const updates = req.body ?? {};
 
       if (Object.keys(updates).length === 0) {
-        return res.status(200).json({
-          success: true,
-          message: "No changes provided.",
-          data: null,
-        });
+        console.log("1");
+        return sendResponse(res, 200, true, "No changes provided");
       }
-
-      // Explicitly block forbidden fields
-      const forbidden = ["_id", "email", "password"];
-      for (const field of forbidden) {
-        if (field in updates) {
-          return res.status(400).json({
-            success: false,
-            message: `Cannot update field: ${field}`,
-            data: null,
-          });
-        }
-      }
-
-      const user = await User.findById(req.userId);
-
+      
+      const user = await User.findById(req.user.id);
       if (!user) {
-        return res.status(404).json({
-          success: false,
-          message: "User not found",
-          data: null,
-        });
+        return sendResponse(res, 404, false, "User not found");
       }
-
-      // Compare using plain object
+      
       if (isSameObject(user.toObject(), updates)) {
-        return res.status(200).json({
-          success: true,
-          message: "No changes provided.",
-          data: formatUser(user),
-        });
+        console.log("3");
+        return sendResponse(
+          res,
+          200,
+          true,
+          "No changes provided",
+          user
+        );
       }
 
-      const updatedUser = await User.findByIdAndUpdate(req.userId, updates, {
+      const updatedUser = await User.findByIdAndUpdate(req.user.id, updates, {
         new: true,
       }).select("-password");
 
-      return res.status(200).json({
-        success: true,
-        message: "User updated successfully",
-        data: formatUser(updatedUser),
-      });
+      return sendResponse(
+        res,
+        200,
+        true,
+        "User updated successfully",
+        updatedUser
+      );
     } catch (err) {
-      console.error(err);
-      return res.status(500).json({
-        success: false,
-        message: "Error updating user",
-        data: null,
-      });
+      console.error("updateUser error:", err);
+      return sendResponse(res, 500, false, "Error updating user");
     }
   }
 
-  // --------------------- UPDATE EMAIL ---------------------
-  static async updateEmail(req, res) {
+  // ---------------- UPDATE CREDENTIALS ----------------
+  static async updateCredentials(req, res) {
     try {
-      const { email } = req.body ?? {};
+      const userId = req.user.id;
+      const { email, username } = req.body ?? {};
 
-      if (!email) {
-        return res.status(200).json({
-          success: true,
-          message: "No changes provided.",
-          data: null,
-        });
-      }
-
-      const user = await User.findById(req.userId);
-
+      const user = await UserService.getUserInfo(userId);
       if (!user) {
-        return res.status(404).json({
-          success: false,
-          message: "User not found",
-          data: null,
-        });
+        return sendResponse(res, 404, false, "User not found");
       }
 
-      if (email === user.email) {
-        return res.status(200).json({
-          success: true,
-          message: "No changes provided.",
-          data: formatUser(user),
-        });
+      const updates = {};
+      if (email) updates.email = email;
+      if (username) updates.username = username;
+
+      if (Object.keys(updates).length === 0 || isSameObject(user, updates)) {
+        return sendResponse(
+          res,
+          200,
+          true,
+          "No changes provided",
+          user
+        );
       }
 
-      const emailExists = await User.findOne({
-        email,
-        _id: { $ne: req.userId },
-      });
-
-      if (emailExists) {
-        return res.status(400).json({
-          success: false,
-          message: "Email already in use",
-          data: null,
+      if (email) {
+        const emailExists = await User.findOne({
+          email,
+          _id: { $ne: userId },
         });
+        if (emailExists) {
+          return sendResponse(res, 400, false, "Email already in use");
+        }
       }
 
-      user.email = email;
+      if (username) {
+        const usernameExists = await User.findOne({
+          username,
+          _id: { $ne: userId },
+        });
+        if (usernameExists) {
+          return sendResponse(res, 400, false, "Username already in use");
+        }
+      }
+
+      const updated = await User.findByIdAndUpdate(userId, updates, {
+        new: true,
+      }).select("-password");
+
+      return sendResponse(
+        res,
+        200,
+        true,
+        "Credentials updated successfully",
+        updated
+      );
+    } catch (err) {
+      console.error("updateCredentials error:", err);
+      return sendResponse(res, 500, false, "Server error");
+    }
+  }
+
+  // ---------------- UPDATE PROFILE PICTURE ----------------
+  static async updateProfilePicture(req, res) {
+    try {
+      if (!req.file) {
+        return sendResponse(res, 400, false, "No file uploaded");
+      }
+
+      const user = await User.findById(req.user.id);
+      if (!user) {
+        return sendResponse(res, 404, false, "User not found");
+      }
+
+      if (user.profilePicturePublicId) {
+        await cloudinary.uploader.destroy(user.profilePicturePublicId);
+      }
+
+      user.profilePicture = req.file.path;
+      user.profilePicturePublicId = req.file.filename;
       await user.save();
 
-      return res.status(200).json({
-        success: true,
-        message: "Email updated successfully",
-        data: formatUser(user),
-      });
+      return sendResponse(
+        res,
+        200,
+        true,
+        "Profile picture updated successfully",
+        { url: user.profilePicture }
+      );
     } catch (err) {
-      console.error("Error updating email:", err);
+      console.error("updateProfilePicture error:", err);
+      return sendResponse(res, 500, false, "Failed to update profile picture");
+    }
+  }
 
-      return res.status(500).json({
-        success: false,
-        message: "Server error",
-        data: null,
-      });
+  // ---------------- DELETE PROFILE PICTURE ----------------
+  static async deleteProfilePicture(req, res) {
+    try {
+      const user = await User.findById(req.user.id);
+      if (!user) {
+        return sendResponse(res, 404, false, "User not found");
+      }
+
+      if (user.profilePicturePublicId) {
+        await cloudinary.uploader.destroy(user.profilePicturePublicId);
+      }
+
+      user.profilePicture = "/guest.png";
+      user.profilePicturePublicId = null;
+      await user.save();
+
+      return sendResponse(res, 200, true, "Profile picture removed");
+    } catch (err) {
+      console.error("deleteProfilePicture error:", err);
+      return sendResponse(res, 500, false, "Failed to remove profile picture");
     }
   }
 }

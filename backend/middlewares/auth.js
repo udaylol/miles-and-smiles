@@ -1,4 +1,5 @@
 import { verifyToken } from "../utils/jwt.js";
+import { sendResponse } from "../utils/response.js";
 
 export const auth = (req, res, next) => {
   try {
@@ -9,24 +10,16 @@ export const auth = (req, res, next) => {
         : null);
 
     if (!token) {
-      return res.status(401).json({
-        success: false,
-        message: "Not authenticated.",
-        data: null,
-      });
+      return sendResponse(res, 401,false, "Not authenticated");
     }
 
     const decoded = verifyToken(token);
 
-    req.userId = decoded._id;
+    req.user = { id: decoded._id };
     next();
   } catch (err) {
     console.error("Authentication error:", err);
 
-    return res.status(401).json({
-      success: false,
-      message: "Invalid or expired token.",
-      data: null,
-    });
+    return sendResponse(res, 401, false, "Token invalid or expired");
   }
 };

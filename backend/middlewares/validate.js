@@ -1,3 +1,5 @@
+import { sendResponse } from "../utils/response.js";
+
 export const validate = (schema) => (req, res, next) => {
   const result = schema.safeParse(req.body);
 
@@ -11,11 +13,7 @@ export const validate = (schema) => (req, res, next) => {
     // Grab the first error message
     const firstErrorMessage = result.error.issues[0].message;
 
-    return res.status(400).json({
-      success: false,
-      message: firstErrorMessage,
-      data: errors,
-    });
+    return sendResponse(res, 400, false, firstErrorMessage, errors);
   }
 
   req.body = result.data;
