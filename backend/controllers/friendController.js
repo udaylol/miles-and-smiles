@@ -1,5 +1,5 @@
-import FriendService from "../services/friendService.js";
-import { sendResponse } from "../utils/response.js";
+import FriendService from '../services/friendService.js';
+import { sendResponse } from '../utils/response.js';
 
 class FriendController {
   // ---------------- GET FRIENDS ----------------
@@ -11,17 +11,17 @@ class FriendController {
         res,
         200,
         true,
-        "Friends fetched successfully",
+        'Friends fetched successfully',
         friends
       );
     } catch (err) {
-      console.error("getFriends error:", err);
+      console.error('getFriends error:', err);
 
-      if (err.message === "User not found") {
+      if (err.message === 'User not found') {
         return sendResponse(res, 404, false, err.message);
       }
 
-      return sendResponse(res, 500, false, "Server error");
+      return sendResponse(res, 500, false, 'Server error');
     }
   }
 
@@ -34,17 +34,17 @@ class FriendController {
         res,
         200,
         true,
-        "Friend requests fetched successfully",
+        'Friend requests fetched successfully',
         requests
       );
     } catch (err) {
-      console.error("getFriendRequests error:", err);
+      console.error('getFriendRequests error:', err);
 
-      if (err.message === "User not found") {
+      if (err.message === 'User not found') {
         return sendResponse(res, 404, false, err.message);
       }
 
-      return sendResponse(res, 500, false, "Server error");
+      return sendResponse(res, 500, false, 'Server error');
     }
   }
 
@@ -56,16 +56,16 @@ class FriendController {
 
       await FriendService.sendFriendRequest(senderId, receiverId);
 
-      return sendResponse(res, 200, true, "Friend request sent");
+      return sendResponse(res, 200, true, 'Friend request sent');
     } catch (err) {
-      console.error("sendFriendRequest error:", err);
+      console.error('sendFriendRequest error:', err);
 
       const errorMessages = {
-        "Invalid User id": { status: 400, message: err.message },
-        "You cannot add yourself": { status: 400, message: err.message },
-        "User not found": { status: 404, message: err.message },
-        "Already friends": { status: 400, message: err.message },
-        "Request already pending": { status: 400, message: err.message },
+        'Invalid User id': { status: 400, message: err.message },
+        'You cannot add yourself': { status: 400, message: err.message },
+        'User not found': { status: 404, message: err.message },
+        'Already friends': { status: 400, message: err.message },
+        'Request already pending': { status: 400, message: err.message },
       };
 
       const error = errorMessages[err.message];
@@ -73,7 +73,7 @@ class FriendController {
         return sendResponse(res, error.status, false, error.message);
       }
 
-      return sendResponse(res, 500, false, "Server error");
+      return sendResponse(res, 500, false, 'Server error');
     }
   }
 
@@ -85,14 +85,14 @@ class FriendController {
 
       await FriendService.acceptFriendRequest(receiverId, senderId);
 
-      return sendResponse(res, 200, true, "Friend request accepted");
+      return sendResponse(res, 200, true, 'Friend request accepted');
     } catch (err) {
-      console.error("acceptFriendRequest error:", err);
+      console.error('acceptFriendRequest error:', err);
 
       const errorMessages = {
-        "Invalid User id": { status: 400, message: err.message },
-        "User not found": { status: 404, message: err.message },
-        "No request from this user": { status: 400, message: err.message },
+        'Invalid User id': { status: 400, message: err.message },
+        'User not found': { status: 404, message: err.message },
+        'No request from this user': { status: 400, message: err.message },
       };
 
       const error = errorMessages[err.message];
@@ -100,7 +100,7 @@ class FriendController {
         return sendResponse(res, error.status, false, error.message);
       }
 
-      return sendResponse(res, 500, false, "Server error");
+      return sendResponse(res, 500, false, 'Server error');
     }
   }
 
@@ -112,13 +112,13 @@ class FriendController {
 
       await FriendService.deleteFriendRequest(uid1, uid2);
 
-      return sendResponse(res, 200, true, "Friend request removed");
+      return sendResponse(res, 200, true, 'Friend request removed');
     } catch (err) {
-      console.error("deleteFriendRequest error:", err);
+      console.error('deleteFriendRequest error:', err);
 
       const errorMessages = {
-        "Invalid User id": { status: 400, message: err.message },
-        "User not found": { status: 404, message: err.message },
+        'Invalid User id': { status: 400, message: err.message },
+        'User not found': { status: 404, message: err.message },
       };
 
       const error = errorMessages[err.message];
@@ -126,7 +126,7 @@ class FriendController {
         return sendResponse(res, error.status, false, error.message);
       }
 
-      return sendResponse(res, 500, false, "Server error");
+      return sendResponse(res, 500, false, 'Server error');
     }
   }
 
@@ -138,13 +138,13 @@ class FriendController {
 
       await FriendService.deleteFriend(uid1, uid2);
 
-      return sendResponse(res, 200, true, "Friend removed");
+      return sendResponse(res, 200, true, 'Friend removed');
     } catch (err) {
-      console.error("deleteFriend error:", err);
+      console.error('deleteFriend error:', err);
 
       const errorMessages = {
-        "Invalid User id": { status: 400, message: err.message },
-        "User not found": { status: 404, message: err.message },
+        'Invalid User id': { status: 400, message: err.message },
+        'User not found': { status: 404, message: err.message },
       };
 
       const error = errorMessages[err.message];
@@ -152,7 +152,7 @@ class FriendController {
         return sendResponse(res, error.status, false, error.message);
       }
 
-      return sendResponse(res, 500, false, "Server error");
+      return sendResponse(res, 500, false, 'Server error');
     }
   }
 }

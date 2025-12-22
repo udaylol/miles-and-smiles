@@ -11,5 +11,4 @@ export const privateUserDTO = (user) => ({
   gender: user.gender,
   birthday: user.birthday,
   friends: user.friends,
-
-})
+});

@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose from 'mongoose';
 
 const gameSchema = new mongoose.Schema(
   {
@@ -15,7 +15,7 @@ const gameSchema = new mongoose.Schema(
 
     coverImage: {
       type: String,
-      default: "/default-game-cover.png",
+      default: '/default-game-cover.png',
     },
 
     coverImagePublicId: {
@@ -32,7 +32,7 @@ const gameSchema = new mongoose.Schema(
       type: Number,
       min: 0,
       max: 10,
-      default: 0,
+      default: null,
     },
 
     maxPlayers: {
@@ -48,6 +48,6 @@ const gameSchema = new mongoose.Schema(
   }
 );
 
-const Game = mongoose.model("Game", gameSchema);
+const Game = mongoose.model('Game', gameSchema);
 
 export default Game;

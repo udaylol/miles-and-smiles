@@ -1,8 +1,8 @@
-import User from "../models/User.js";
-import cloudinary from "../configs/cloudinary.js";
-import mongoose from "mongoose";
-import { isSameObject } from "../utils/compare.js";
-import { publicUserDTO } from "../dtos/userDto.js";
+import User from '../models/User.js';
+import cloudinary from '../configs/cloudinary.js';
+import mongoose from 'mongoose';
+import { isSameObject } from '../utils/compare.js';
+import { publicUserDTO } from '../dtos/userDto.js';
 
 class UserService {
   /**
@@ -11,7 +11,17 @@ class UserService {
    */
   static validateObjectId(id) {
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      throw new Error("Invalid user id");
+      throw new Error('Invalid user id');
+    }
+  }
+
+  /**
+   * Validate MongoDB ObjectId for game
+   * @throws Error if invalid
+   */
+  static validateGameId(gameId) {
+    if (!mongoose.Types.ObjectId.isValid(gameId)) {
+      throw new Error('Invalid game id');
     }
   }
 
@@ -19,8 +29,8 @@ class UserService {
    * Get user info (basic fields)
    */
   static async getUserInfo(userId) {
-    const user = await User.findById(userId).select("-password");
-    console.log("getUserInfo - userId:", userId, "found:", !!user);
+    const user = await User.findById(userId).select('-password');
+    console.log('getUserInfo - userId:', userId, 'found:', !!user);
     return user;
   }
 
@@ -29,8 +39,8 @@ class UserService {
    */
   static async getUserWithFriends(userId) {
     return await User.findById(userId)
-      .populate("friends", "username email profilePicture")
-      .select("friends")
+      .populate('friends', 'username email profilePicture')
+      .select('friends')
       .lean();
   }
 
@@ -39,9 +49,9 @@ class UserService {
    */
   static async getUserWithFriendRequests(userId) {
     return await User.findById(userId)
-      .populate("incomingFriendRequests", "username email profilePicture")
-      .populate("outgoingFriendRequests", "username email profilePicture")
-      .select("incomingFriendRequests outgoingFriendRequests")
+      .populate('incomingFriendRequests', 'username email profilePicture')
+      .populate('outgoingFriendRequests', 'username email profilePicture')
+      .select('incomingFriendRequests outgoingFriendRequests')
       .lean();
   }
 
@@ -54,7 +64,7 @@ class UserService {
 
     const user = await this.getUserInfo(userId);
     if (!user) {
-      throw new Error("User not found");
+      throw new Error('User not found');
     }
 
     return publicUserDTO(user);
@@ -71,7 +81,7 @@ class UserService {
 
     const user = await User.findById(userId);
     if (!user) {
-      throw new Error("User not found");
+      throw new Error('User not found');
     }
 
     if (isSameObject(user.toObject(), updates)) {
@@ -80,7 +90,7 @@ class UserService {
 
     const updatedUser = await User.findByIdAndUpdate(userId, updates, {
       new: true,
-    }).select("-password");
+    }).select('-password');
 
     return updatedUser;
   }
@@ -92,14 +102,17 @@ class UserService {
   static async updateCredentials(userId, { email, username }) {
     const user = await this.getUserInfo(userId);
     if (!user) {
-      throw new Error("User not found");
+      throw new Error('User not found');
     }
 
     const updates = {};
     if (email) updates.email = email;
     if (username) updates.username = username;
 
-    if (Object.keys(updates).length === 0 || isSameObject(user.toObject(), updates)) {
+    if (
+      Object.keys(updates).length === 0 ||
+      isSameObject(user.toObject(), updates)
+    ) {
       return null; // No changes
     }
 
@@ -109,7 +122,7 @@ class UserService {
         _id: { $ne: userId },
       });
       if (emailExists) {
-        throw new Error("Email already in use");
+        throw new Error('Email already in use');
       }
     }
 
@@ -119,13 +132,13 @@ class UserService {
         _id: { $ne: userId },
       });
       if (usernameExists) {
-        throw new Error("Username already in use");
+        throw new Error('Username already in use');
       }
     }
 
     const updated = await User.findByIdAndUpdate(userId, updates, {
       new: true,
-    }).select("-password");
+    }).select('-password');
 
     return updated;
   }
@@ -137,7 +150,7 @@ class UserService {
   static async updateProfilePicture(userId, file) {
     const user = await User.findById(userId);
     if (!user) {
-      throw new Error("User not found");
+      throw new Error('User not found');
     }
 
     // Delete old profile picture from cloudinary
@@ -159,7 +172,7 @@ class UserService {
   static async deleteProfilePicture(userId) {
     const user = await User.findById(userId);
     if (!user) {
-      throw new Error("User not found");
+      throw new Error('User not found');
     }
 
     // Delete from cloudinary
@@ -167,9 +180,57 @@ class UserService {
       await cloudinary.uploader.destroy(user.profilePicturePublicId);
     }
 
-    user.profilePicture = "/guest.png";
+    user.profilePicture = '/guest.png';
     user.profilePicturePublicId = null;
     await user.save();
+  }
+
+  /**
+   * Add game to user's favourites
+   * Uses $addToSet to prevent duplicates atomically
+   * @throws Error if user not found or invalid gameId
+   * @returns Updated favourites array
+   */
+  static async addToFavourites(userId, gameId) {
+    this.validateGameId(gameId);
+
+    const user = await User.findById(userId);
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    // Use $addToSet to atomically add gameId if not already present
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { $addToSet: { favourites: gameId } },
+      { new: true }
+    ).select('favourites');
+
+    return updatedUser.favourites;
+  }
+
+  /**
+   * Remove game from user's favourites
+   * Uses $pull to atomically remove gameId
+   * @throws Error if user not found or invalid gameId
+   * @returns Updated favourites array
+   */
+  static async removeFromFavourites(userId, gameId) {
+    this.validateGameId(gameId);
+
+    const user = await User.findById(userId);
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    // Use $pull to atomically remove gameId
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { $pull: { favourites: gameId } },
+      { new: true }
+    ).select('favourites');
+
+    return updatedUser.favourites;
   }
 }
 

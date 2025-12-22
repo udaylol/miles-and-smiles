@@ -1,7 +1,7 @@
-import mongoose from "mongoose";
-import { customAlphabet, urlAlphabet } from "nanoid";
+import mongoose from 'mongoose';
+import { customAlphabet, urlAlphabet } from 'nanoid';
 
-const alphabet = urlAlphabet.replace(/[-_]/g, "");
+const alphabet = urlAlphabet.replace(/[-_]/g, '');
 const generateUsername = customAlphabet(alphabet, 6);
 
 const userSchema = new mongoose.Schema(
@@ -27,7 +27,7 @@ const userSchema = new mongoose.Schema(
 
     profilePicture: {
       type: String,
-      default: "/guest.png",
+      default: '/guest.png',
     },
 
     profilePicturePublicId: {
@@ -38,28 +38,28 @@ const userSchema = new mongoose.Schema(
     friends: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
+        ref: 'User',
       },
     ],
 
     favourites: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "Game",
+        ref: 'Game',
       },
     ],
 
     incomingFriendRequests: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
+        ref: 'User',
       },
     ],
 
     outgoingFriendRequests: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
+        ref: 'User',
       },
     ],
 
@@ -67,7 +67,7 @@ const userSchema = new mongoose.Schema(
 
     gender: {
       type: String,
-      enum: ["male", "female", "other"],
+      enum: ['male', 'female', 'other'],
     },
   },
   {
@@ -76,12 +76,12 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-userSchema.pre("save", async function () {
+userSchema.pre('save', async function () {
   if (!this.username) {
-    this.username = "User-" + generateUsername();
+    this.username = 'User-' + generateUsername();
   }
 });
 
-const User = mongoose.model("User", userSchema);
+const User = mongoose.model('User', userSchema);
 
 export default User;

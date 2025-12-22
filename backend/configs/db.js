@@ -1,14 +1,14 @@
-import mongoose from "mongoose";
+import mongoose from 'mongoose';
 
 const MONGODB =
-  process.env.MONGODB || "mongodb://localhost:27017/miles-and-smiles";
+  process.env.MONGODB || 'mongodb://localhost:27017/miles-and-smiles';
 
 export default async function connectDB() {
   try {
     await mongoose.connect(MONGODB);
-    console.log("MongoDB Connected");
+    console.log('MongoDB Connected');
   } catch (err) {
-    console.error("Error connecting to MongoDB: " + err);
+    console.error('Error connecting to MongoDB: ' + err);
     process.exit(1);
   }
 }

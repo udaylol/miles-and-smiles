@@ -1,12 +1,12 @@
-import User from "../models/User.js";
-import mongoose from "mongoose";
+import User from '../models/User.js';
+import mongoose from 'mongoose';
 
 class FriendService {
   /**
    * Validate MongoDB ObjectId
    * @throws Error if invalid
    */
-  static validateObjectId(id, fieldName = "User id") {
+  static validateObjectId(id, fieldName = 'User id') {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       throw new Error(`Invalid ${fieldName}`);
     }
@@ -18,11 +18,11 @@ class FriendService {
    */
   static async getFriends(userId) {
     const user = await User.findById(userId)
-      .populate("friends", "username email profilePicture")
-      .select("friends");
+      .populate('friends', 'username email profilePicture')
+      .select('friends');
 
     if (!user) {
-      throw new Error("User not found");
+      throw new Error('User not found');
     }
 
     return user.friends;
@@ -34,12 +34,12 @@ class FriendService {
    */
   static async getFriendRequests(userId) {
     const user = await User.findById(userId)
-      .populate("incomingFriendRequests", "username email profilePicture")
-      .populate("outgoingFriendRequests", "username email profilePicture")
-      .select("incomingFriendRequests outgoingFriendRequests");
+      .populate('incomingFriendRequests', 'username email profilePicture')
+      .populate('outgoingFriendRequests', 'username email profilePicture')
+      .select('incomingFriendRequests outgoingFriendRequests');
 
     if (!user) {
-      throw new Error("User not found");
+      throw new Error('User not found');
     }
 
     return {
@@ -56,22 +56,22 @@ class FriendService {
     this.validateObjectId(receiverId);
 
     if (senderId === receiverId) {
-      throw new Error("You cannot add yourself");
+      throw new Error('You cannot add yourself');
     }
 
     const sender = await User.findById(senderId);
     const receiver = await User.findById(receiverId);
 
     if (!sender || !receiver) {
-      throw new Error("User not found");
+      throw new Error('User not found');
     }
 
     if (sender.friends.includes(receiverId)) {
-      throw new Error("Already friends");
+      throw new Error('Already friends');
     }
 
     if (receiver.incomingFriendRequests.includes(senderId)) {
-      throw new Error("Request already pending");
+      throw new Error('Request already pending');
     }
 
     sender.outgoingFriendRequests.push(receiverId);
@@ -92,11 +92,11 @@ class FriendService {
     const sender = await User.findById(senderId);
 
     if (!receiver || !sender) {
-      throw new Error("User not found");
+      throw new Error('User not found');
     }
 
     if (!receiver.incomingFriendRequests.includes(senderId)) {
-      throw new Error("No request from this user");
+      throw new Error('No request from this user');
     }
 
     receiver.incomingFriendRequests = receiver.incomingFriendRequests.filter(
@@ -124,7 +124,7 @@ class FriendService {
     const user2 = await User.findById(uid2);
 
     if (!user1 || !user2) {
-      throw new Error("User not found");
+      throw new Error('User not found');
     }
 
     user1.incomingFriendRequests = user1.incomingFriendRequests.filter(
@@ -155,7 +155,7 @@ class FriendService {
     const user2 = await User.findById(uid2);
 
     if (!user1 || !user2) {
-      throw new Error("User not found");
+      throw new Error('User not found');
     }
 
     user1.friends = user1.friends.filter((id) => id.toString() !== uid2);
