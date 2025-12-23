@@ -4,7 +4,9 @@
   "type": "module",
   "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest",
+    "test:watch": "NODE_OPTIONS=--experimental-vm-modules jest --watch",
+    "test:coverage": "NODE_OPTIONS=--experimental-vm-modules jest --coverage",
     "seed:games": "node src/seed/seedGames.js",
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
@@ -29,6 +31,8 @@
     "zod": "^4.1.13"
   },
   "devDependencies": {
+    "@jest/globals": "^30.2.0",
+    "jest": "^30.2.0",
     "nodemon": "^3.1.11",
     "prettier": "^3.7.4"
   }
