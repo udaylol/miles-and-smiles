@@ -86,32 +86,45 @@ class FriendService {
    * @throws Error for validation failures
    */
   static async acceptFriendRequest(receiverId, senderId) {
-    this.validateObjectId(senderId);
+  this.validateObjectId(senderId);
 
-    const receiver = await User.findById(receiverId);
-    const sender = await User.findById(senderId);
+  const receiver = await User.findById(receiverId);
+  const sender = await User.findById(senderId);
 
-    if (!receiver || !sender) {
-      throw new Error('User not found');
-    }
-
-    if (!receiver.incomingFriendRequests.includes(senderId)) {
-      throw new Error('No request from this user');
-    }
-
-    receiver.incomingFriendRequests = receiver.incomingFriendRequests.filter(
-      (id) => id.toString() !== senderId
-    );
-    sender.outgoingFriendRequests = sender.outgoingFriendRequests.filter(
-      (id) => id.toString() !== receiverId
-    );
-
-    receiver.friends.push(senderId);
-    sender.friends.push(receiverId);
-
-    await receiver.save();
-    await sender.save();
+  if (!receiver || !sender) {
+    throw new Error('User not found');
   }
+
+  if (!receiver.incomingFriendRequests.includes(senderId)) {
+    throw new Error('No request from this user');
+  }
+
+  // 🔴 remove ALL request edges between the two users
+  receiver.incomingFriendRequests = receiver.incomingFriendRequests.filter(
+    (id) => id.toString() !== senderId
+  );
+  receiver.outgoingFriendRequests = receiver.outgoingFriendRequests.filter(
+    (id) => id.toString() !== senderId
+  );
+
+  sender.incomingFriendRequests = sender.incomingFriendRequests.filter(
+    (id) => id.toString() !== receiverId
+  );
+  sender.outgoingFriendRequests = sender.outgoingFriendRequests.filter(
+    (id) => id.toString() !== receiverId
+  );
+
+  // 🟢 add friendship (idempotent-safe)
+  if (!receiver.friends.includes(senderId)) {
+    receiver.friends.push(senderId);
+  }
+  if (!sender.friends.includes(receiverId)) {
+    sender.friends.push(receiverId);
+  }
+
+  await receiver.save();
+  await sender.save();
+}
 
   /**
    * Delete/cancel a friend request (from either side)
