@@ -1,7 +1,7 @@
 import 'dotenv/config.js';
 import connectDB from '../configs/db.js';
 import Game from '../models/Game.js';
-import { games } from './data/games.js';
+import { games } from '../data/games.js'
 
 async function seedGames() {
   try {
